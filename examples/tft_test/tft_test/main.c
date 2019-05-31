@@ -41,7 +41,6 @@ int main(void) {
     test_char();
 
     while(1) {
-        write_cmd(0);
     }
     
 }
