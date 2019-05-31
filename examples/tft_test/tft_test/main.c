@@ -41,7 +41,7 @@ int main(void) {
     test_char();
 
     while(1) {
-        PORTC = PINA;
+        write_cmd(0);
     }
     
 }
