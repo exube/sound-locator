@@ -17,6 +17,7 @@ void write_cmd(uint8_t data);
 void write_data(uint8_t data);
 void test_char();
 
-
+void write_char(uint16_t col, uint16_t pg, char data);
+void write_strn(uint16_t col, uint16_t pg, const char *str, uint8_t sz);
 
 #endif /* SPI_H_ */

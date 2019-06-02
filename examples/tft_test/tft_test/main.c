@@ -40,6 +40,7 @@ int main(void) {
     PORTC = 0xFF;
     test_char();
 
+    write_strn(0, 0, "Hello World!", 24);
     while(1) {
     }
     
