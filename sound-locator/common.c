@@ -13,10 +13,24 @@
 uint32_t avr_timer_max = 1;
 uint32_t avr_timer_current = 0;
 
+
+// For this project, max period needs to be 1600 cycles (for 5kHz sampling at 8MHz CPU clock).  
+// This also allows me to update 1 8x8 area on the display per "tick". (1 character, or 1/64 of the 64x64 "compass")
+// The tasks must be rigorously ordered.  Sampling takes 60 +/- 3 (constant) cycles, and must be done
+// first.  The screen update takes about 1200+/-100 cycles (constant).  This leaves about 200 cycles
+// for processing (xcorr, trig).  These tasks will be fit into a <1600 cycle period.
+// Other costs: subroutine call induces ~8 cycles of overhead, depending on args and return.
+// Interrupt takes ~8 cycles, depending on architecture.  
+
+// 
 void timer_init() {
-    TCCR1B = 0x0B;
-    OCR1A = 125;
-    TIMSK1 = 0x02; // bit1: OCIE1A -- enables compare match interrupt
+    // WGM1[3:0] = 4 (CTC mode)
+    // CS1[2:0] = 3 (clk/64 prescaler)
+    TCCR1B = (1 << WGM12) | (1 << CS11) | (1 << CS10); // CS1[2:0] = 3
+
+    // Interrupt every 25*64 = 1600 cycles. 
+    OCR1A = 25;
+    TIMSK1 = 1 << OCIE1A; // bit1: OCIE1A -- enables compare match interrupt
 
     //Initialize avr counter
     TCNT1=0;

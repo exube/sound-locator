@@ -14,10 +14,10 @@
 uint8_t task_i = 0;
 
 struct _task {
-    uint32_t state;
+    uint16_t state;
     uint32_t period;
     uint32_t elapsed;
-    uint32_t (*tick)(uint32_t);
+    uint16_t (*tick)(uint16_t);
     //tflag flags;
 };
 
@@ -28,7 +28,7 @@ enum _tflag {
 
 task tasks[TASK_MAX];
 
-void add_task(uint32_t state, uint32_t period, uint32_t (*tick)(uint32_t)) {
+void add_task(uint16_t state, uint32_t period, uint16_t (*tick)(uint16_t)) {
     tasks[task_i].state = state;
     tasks[task_i].period = period;
     tasks[task_i].elapsed = 0;

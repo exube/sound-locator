@@ -11,7 +11,7 @@
 
 typedef struct _task task;
 typedef enum _tflag tflag;
-void add_task(uint32_t state, uint32_t period, uint32_t (*tick)(uint32_t));
+void add_task(uint16_t state, uint32_t period, uint16_t (*tick)(uint16_t));
 
 
 #endif /* SCHEDULER_H_ */
