@@ -179,8 +179,8 @@ uint16_t read_sample1(uint8_t channel) {
     result_low = SPDR;
     
     // Throw away the rest of the transmission
-    SPDR = 0x00;
-    txwait();
+    //SPDR = 0x00;
+    //txwait();
     
     adc1_desel();
     return (((uint16_t)result_high) << 8) | result_low;

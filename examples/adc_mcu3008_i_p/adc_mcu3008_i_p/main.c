@@ -47,6 +47,14 @@ void itostr(uint16_t val, char* out, char radix) {
 
 uint16_t greatest = 0;
 uint16_t least = 1024;
+
+// Create 2 buffers for each sample.
+uint16_t bufA_1[512];
+uint16_t bufB_1[512];
+uint16_t bufA_2[512];
+uint16_t bufB_2[512];
+
+
 uint32_t tick_SAMPLE(uint32_t unused) {
     uint16_t big;
     big = read_sample1(0);
@@ -58,7 +66,6 @@ uint32_t tick_SAMPLE(uint32_t unused) {
 
 char bignum[8];
 char smallnum[8];
-
 uint32_t tick_SCREEN(uint32_t unused) {
     itostr(greatest, bignum, 'd');
     itostr(least, smallnum, 'd');
