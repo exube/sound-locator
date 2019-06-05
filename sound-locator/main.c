@@ -106,10 +106,10 @@ uint16_t tick_SAMPLE(uint16_t state) {
 // ready after 20 ticks.  (The angle calculation a simple integer divide and a trig table lookup)
 
 #define MAX_DELAY_SAMPLES 6
-int16_t xcorr[3*(2*MAX_DELAY_SAMPLES+1)];
-int16_t *xcorr_AB = xcorr;
-int16_t *xcorr_BC = &(xcorr[2*MAX_DELAY_SAMPLES+1]);
-int16_t *xcorr_CA = &(xcorr[2*(2*MAX_DELAY_SAMPLES+1)]);
+int32_t xcorr[3*(2*MAX_DELAY_SAMPLES+1)];
+int32_t *xcorr_AB = xcorr;
+int32_t *xcorr_BC = &(xcorr[2*MAX_DELAY_SAMPLES+1]);
+int32_t *xcorr_CA = &(xcorr[2*(2*MAX_DELAY_SAMPLES+1)]);
 
 int8_t delay_AB;
 int8_t delay_BC;
@@ -160,9 +160,9 @@ uint16_t tick_CALC(uint16_t state) {
         state = S_CALC_WAIT;
         break;
     }
-    int16_t dotp;
+    int32_t dotp;
 
-    int16_t corr_m_AB, corr_m_BC, corr_m_CA;
+    int32_t corr_m_AB, corr_m_BC, corr_m_CA;
     // Actions
     switch(state) {
         case S_CALC_WAIT:
@@ -256,11 +256,11 @@ uint16_t tick_CALC(uint16_t state) {
         dotp = 0;
         if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
             for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)] / 16;
             }
             } else {
             for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)] / 16;
             }
         }
         xcorr_CA[xcorr_index] = dotp;
