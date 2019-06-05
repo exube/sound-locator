@@ -63,7 +63,7 @@
 #define f_CALC_angle_ready  6
 
 // Our op-amp output uses a virtual ground of 0.5*V_ref
-#define SAMPLE_BIAS       512
+#define SAMPLE_BIAS       500
 // This should be signed.
 int16_t SAMPLE_mic_buf[3*2*BUF_SZ];
 
@@ -115,6 +115,7 @@ int8_t delay_AB;
 int8_t delay_BC;
 int8_t delay_CA;
 
+int8_t dir;
 
 enum CALC_state {S_CALC_WAIT, S_CALC_OP_AB, S_CALC_OP_BC, S_CALC_OP_CA, S_CALC_ANGLE, S_CALC_RST};
 
@@ -289,7 +290,8 @@ uint16_t tick_CALC(uint16_t state) {
             } else {
             SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
         }
-        corr_m_AB = corr_m_BC = corr_m_CA = 4000;
+        corr_m_AB = corr_m_BC = corr_m_CA = 8000;
+        delay_AB = delay_BC = delay_CA = 0;
         for (uint8_t i = 0; i < num_xcorr_pts; i++) {
             if (xcorr_AB[i] > corr_m_AB) {
                 corr_m_AB = xcorr_AB[i];
@@ -304,6 +306,29 @@ uint16_t tick_CALC(uint16_t state) {
                 delay_CA = i-MAX_DELAY_SAMPLES;
             }
         }
+        #define abs(a) ((a < 0) ? -a : a)
+        // Find the delay with the highest magnitude and use it as our determining factor.
+
+        if (abs(delay_AB) > abs(delay_BC) && abs(delay_AB) > abs(delay_CA)) {
+            if (delay_AB > 0) dir = 1;
+            else dir = 4;
+        }
+        if (abs(delay_BC) > abs(delay_AB) && abs(delay_BC) > abs(delay_CA)) {
+            if (delay_BC > 0) dir = 3;
+            else dir = 6;
+        }
+        if (abs(delay_CA) > abs(delay_AB) && abs(delay_CA) > abs(delay_BC)) {
+            if (delay_CA > 0) dir = 5;
+            else dir = 2;
+        } else dir = 0;
+        #undef abs
+        
+
+
+        
+        
+
+
         SET_BIT(sl_flags, f_CALC_angle_ready, 1);
         break;
 
@@ -351,19 +376,8 @@ char disp_buf[] = {
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayAB
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayBC
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayCA
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // dir
+    
 };
 char *buf_ampA = disp_buf;
 char *buf_ampB = &(disp_buf[8]);
@@ -399,9 +413,10 @@ uint16_t tick_DISP(uint16_t state) {
         itostr(delay_AB, buf_delayAB);
         itostr(delay_BC, buf_delayBC);
         itostr(delay_CA, buf_delayCA);
-        for (uint8_t i = 0; i < 13; i++) {
+        itostr(dir, buf_delayCA + 8);
+        /*for (uint8_t i = 0; i < 13; i++) {
             itostr(xcorr[i], &(buf_delayCA[8*(i+1)]));
-        }
+        }*/
         SET_BIT(sl_flags, f_CALC_angle_ready, 0)
         break;
 
