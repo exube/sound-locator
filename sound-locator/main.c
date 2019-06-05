@@ -120,7 +120,7 @@ enum CALC_state {S_CALC_WAIT, S_CALC_OP_AB, S_CALC_OP_BC, S_CALC_OP_CA, S_CALC_A
 
 
 uint16_t tick_CALC(uint16_t state) {
-    int16_t *a_sample, *b_sample, *c_sample;
+    static int16_t *a_sample, *b_sample, *c_sample;
     
     const uint8_t num_xcorr_pts = ((2*MAX_DELAY_SAMPLES+1));  // TODO: Check this
     static int8_t xcorr_index = 0;
@@ -313,7 +313,13 @@ uint16_t tick_CALC(uint16_t state) {
     return state;
 }
 
-void itostr(uint16_t val, char* out) {
+void itostr(int16_t val, char* out) {
+    if (val < 0) {
+        val = -val;
+        *out = '-';
+        out++;
+    }
+
     const uint16_t maxsz = 7;
     uint16_t sz = 0;
     if (val == 0) {out[0] = '0'; out[1] = 0; return;}
@@ -355,13 +361,14 @@ char *buf_delayCA = &(disp_buf[40]);
 
 uint16_t tick_DISP(uint16_t state) {
     static uint8_t loc = 0;
+    static uint8_t cnt = 0;
     switch(state) {
         case S_DISP_BUF:
         state = S_DISP_TX;
         break;
 
         case S_DISP_TX:
-        if (GET_BIT(sl_flags, f_CALC_angle_ready)) {
+        if (GET_BIT(sl_flags, f_CALC_angle_ready) && cnt >= 198) {
             state = S_DISP_BUF;
         }
         break;
@@ -379,16 +386,19 @@ uint16_t tick_DISP(uint16_t state) {
         itostr(delay_AB, buf_delayAB);
         itostr(delay_BC, buf_delayBC);
         itostr(delay_CA, buf_delayCA);
+        SET_BIT(sl_flags, f_CALC_angle_ready, 0)
         break;
 
         case S_DISP_TX:
-        SET_BIT(sl_flags, f_CALC_angle_ready, 0)
+        cnt++;
+        if (cnt >= 200) cnt = 0;
         // Row =  0+(8*(i/8))
         // Col = 80+(8*(i%8))
 
         write_char(80+(8*(loc%8)), 0+(8*(loc/8)), disp_buf[loc]);
         loc++;
         if (loc >= sizeof(disp_buf)) loc = 0;
+        
         break;
     }
 
