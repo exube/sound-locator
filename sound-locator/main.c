@@ -106,10 +106,10 @@ uint16_t tick_SAMPLE(uint16_t state) {
 // ready after 20 ticks.  (The angle calculation a simple integer divide and a trig table lookup)
 
 #define MAX_DELAY_SAMPLES 6
-uint16_t xcorr[3*(2*MAX_DELAY_SAMPLES+1)];
-uint16_t *xcorr_AB = xcorr;
-uint16_t *xcorr_BC = &(xcorr[2*MAX_DELAY_SAMPLES+1]);
-uint16_t *xcorr_CA = &(xcorr[2*(2*MAX_DELAY_SAMPLES+1)]);
+int16_t xcorr[3*(2*MAX_DELAY_SAMPLES+1)];
+int16_t *xcorr_AB = xcorr;
+int16_t *xcorr_BC = &(xcorr[2*MAX_DELAY_SAMPLES+1]);
+int16_t *xcorr_CA = &(xcorr[2*(2*MAX_DELAY_SAMPLES+1)]);
 
 int8_t delay_AB;
 int8_t delay_BC;
@@ -160,7 +160,7 @@ uint16_t tick_CALC(uint16_t state) {
         state = S_CALC_WAIT;
         break;
     }
-    uint16_t dotp;
+    int16_t dotp;
 
     int16_t corr_m_AB, corr_m_BC, corr_m_CA;
     // Actions
@@ -256,11 +256,11 @@ uint16_t tick_CALC(uint16_t state) {
         dotp = 0;
         if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
             for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += c_sample[i] + a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
             } else {
             for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += a_sample[i] + c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_CA[xcorr_index] = dotp;
@@ -270,11 +270,11 @@ uint16_t tick_CALC(uint16_t state) {
             dotp = 0;
             if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
                 for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                    dotp += c_sample[i] + a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
+                    dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
                 } else {
                 for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                    dotp += a_sample[i] + c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
+                    dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             }
             xcorr_CA[xcorr_index] = dotp;
@@ -289,7 +289,7 @@ uint16_t tick_CALC(uint16_t state) {
             } else {
             SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
         }
-        corr_m_AB = corr_m_BC = corr_m_CA = 20000;
+        corr_m_AB = corr_m_BC = corr_m_CA = 4000;
         for (uint8_t i = 0; i < num_xcorr_pts; i++) {
             if (xcorr_AB[i] > corr_m_AB) {
                 corr_m_AB = xcorr_AB[i];
@@ -351,6 +351,19 @@ char disp_buf[] = {
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayAB
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayBC
     '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayCA
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
 };
 char *buf_ampA = disp_buf;
 char *buf_ampB = &(disp_buf[8]);
@@ -386,6 +399,9 @@ uint16_t tick_DISP(uint16_t state) {
         itostr(delay_AB, buf_delayAB);
         itostr(delay_BC, buf_delayBC);
         itostr(delay_CA, buf_delayCA);
+        for (uint8_t i = 0; i < 13; i++) {
+            itostr(xcorr[i], &(buf_delayCA[8*(i+1)]));
+        }
         SET_BIT(sl_flags, f_CALC_angle_ready, 0)
         break;
 
