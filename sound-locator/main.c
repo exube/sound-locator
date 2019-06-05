@@ -68,13 +68,16 @@
 int16_t SAMPLE_mic_buf[3*2*BUF_SZ];
 
 uint8_t sl_flags = 0;
+
+uint16_t sample1, sample2, sample3;
+
 uint16_t tick_SAMPLE(uint16_t state) {
     // Minimise delay between actual samples
     uint16_t a, b, c;
     
-    a = read_sample1(0);
-    b = read_sample1(1);
-    c = read_sample1(2);
+    sample1 = a = read_sample1(0);
+    sample2 = b = read_sample1(1);
+    sample3 = c = read_sample1(2);
     
     // State transitions (simplified)
     if (state >= 2*BUF_SZ) state = 0;
@@ -107,7 +110,10 @@ uint16_t xcorr[3*(2*MAX_DELAY_SAMPLES+1)];
 uint16_t *xcorr_AB = xcorr;
 uint16_t *xcorr_BC = &(xcorr[2*MAX_DELAY_SAMPLES+1]);
 uint16_t *xcorr_CA = &(xcorr[2*(2*MAX_DELAY_SAMPLES+1)]);
-uint8_t angle;
+
+int8_t delay_AB;
+int8_t delay_BC;
+int8_t delay_CA;
 
 
 enum CALC_state {S_CALC_WAIT, S_CALC_OP_AB, S_CALC_OP_BC, S_CALC_OP_CA, S_CALC_ANGLE, S_CALC_RST};
@@ -116,7 +122,7 @@ enum CALC_state {S_CALC_WAIT, S_CALC_OP_AB, S_CALC_OP_BC, S_CALC_OP_CA, S_CALC_A
 uint16_t tick_CALC(uint16_t state) {
     int16_t *a_sample, *b_sample, *c_sample;
     
-    const uint8_t num_xcorr_pts = (3*(2*MAX_DELAY_SAMPLES+1));
+    const uint8_t num_xcorr_pts = ((2*MAX_DELAY_SAMPLES+1));  // TODO: Check this
     static int8_t xcorr_index = 0;
     
     // Transitions
@@ -155,6 +161,8 @@ uint16_t tick_CALC(uint16_t state) {
         break;
     }
     uint16_t dotp;
+
+    int16_t corr_m_AB, corr_m_BC, corr_m_CA;
     // Actions
     switch(state) {
         case S_CALC_WAIT:
@@ -179,16 +187,16 @@ uint16_t tick_CALC(uint16_t state) {
         // A:         0 1 2 3 4 5 6 7 8 *
         // B: 0 1 2 3 4 5 6 7 8 *
         case S_CALC_OP_AB:
-        // The offset is xcorr_index-6.
+        // The offset is xcorr_index-MAX_DELAY_SAMPLES.
         // Calculate the dot product given delay (offset) from A to B.  Positive offset means B is after A.
         dotp = 0;
-        if (xcorr_index-6 <= 0) {
-            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                dotp += a_sample[i] + b_sample[i-(xcorr_index-6)];
+        if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += a_sample[i] + b_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         } else {
-            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                dotp += b_sample[i] + a_sample[i+(xcorr_index-6)];
+            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += b_sample[i] + a_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_AB[xcorr_index] = dotp;
@@ -196,13 +204,13 @@ uint16_t tick_CALC(uint16_t state) {
         // Do it again, cuz we can.
         if (xcorr_index < num_xcorr_pts) {
             dotp = 0;
-            if (xcorr_index-6 <= 0) {
-                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                    dotp += a_sample[i] + b_sample[i-(xcorr_index-6)];
+            if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += a_sample[i] + b_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             } else {
-                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                    dotp += b_sample[i] + a_sample[i+(xcorr_index-6)];
+                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += b_sample[i] + a_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             }
             xcorr_AB[xcorr_index] = dotp;
@@ -211,16 +219,16 @@ uint16_t tick_CALC(uint16_t state) {
         break;
         
         case S_CALC_OP_BC:
-        // The offset is xcorr_index-6.
+        // The offset is xcorr_index-MAX_DELAY_SAMPLES.
         // Calculate the dot product given delay (offset) from A to B.  Positive offset means B is after A.
         dotp = 0;
-        if (xcorr_index-6 <= 0) {
-            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                dotp += b_sample[i] + c_sample[i-(xcorr_index-6)];
+        if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += b_sample[i] + c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         } else {
-            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                dotp += c_sample[i] + b_sample[i+(xcorr_index-6)];
+            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += c_sample[i] + b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_BC[xcorr_index] = dotp;
@@ -228,13 +236,13 @@ uint16_t tick_CALC(uint16_t state) {
         // Do it again, cuz we can.
         if (xcorr_index < num_xcorr_pts) {
             dotp = 0;
-            if (xcorr_index-6 <= 0) {
-                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                    dotp += b_sample[i] + c_sample[i-(xcorr_index-6)];
+            if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += b_sample[i] + c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             } else {
-                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                    dotp += c_sample[i] + b_sample[i+(xcorr_index-6)];
+                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += c_sample[i] + b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             }
             xcorr_BC[xcorr_index] = dotp;
@@ -243,16 +251,16 @@ uint16_t tick_CALC(uint16_t state) {
         break;
 
         case S_CALC_OP_CA:
-        // The offset is xcorr_index-6.
+        // The offset is xcorr_index-MAX_DELAY_SAMPLES.
         // Calculate the dot product given delay (offset) from A to B.  Positive offset means B is after A.
         dotp = 0;
-        if (xcorr_index-6 <= 0) {
-            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                dotp += c_sample[i] + a_sample[i-(xcorr_index-6)];
+        if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+            for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += c_sample[i] + a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
             } else {
-            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                dotp += a_sample[i] + c_sample[i+(xcorr_index-6)];
+            for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                dotp += a_sample[i] + c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_CA[xcorr_index] = dotp;
@@ -260,13 +268,13 @@ uint16_t tick_CALC(uint16_t state) {
         // Do it again, cuz we can.
         if (xcorr_index < num_xcorr_pts) {
             dotp = 0;
-            if (xcorr_index-6 <= 0) {
-                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-6); i++) {
-                    dotp += c_sample[i] + a_sample[i-(xcorr_index-6)];
+            if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
+                for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += c_sample[i] + a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
                 } else {
-                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-6); i++) {
-                    dotp += a_sample[i] + c_sample[i+(xcorr_index-6)];
+                for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
+                    dotp += a_sample[i] + c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             }
             xcorr_CA[xcorr_index] = dotp;
@@ -275,35 +283,133 @@ uint16_t tick_CALC(uint16_t state) {
         break;
 
         case S_CALC_ANGLE:
+        // Free the sample buffers for the sampler to do its thing.
+        if (GET_BIT(sl_flags, f_CALC_buf_used)) {
+            SET_BIT(sl_flags, f_SAMPLE_buf2_ready, 0);
+            } else {
+            SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
+        }
+        corr_m_AB = corr_m_BC = corr_m_CA = 0;
+        for (uint8_t i = 0; i < num_xcorr_pts; i++) {
+            if (xcorr_AB[i] > corr_m_AB) {
+                corr_m_AB = xcorr_AB[i];
+                delay_AB = i-MAX_DELAY_SAMPLES;
+            }
+            if (xcorr_BC[i] > corr_m_BC) {
+                corr_m_BC = xcorr_BC[i];
+                delay_BC = i-MAX_DELAY_SAMPLES;
+            }
+            if (xcorr_CA[i] > corr_m_CA) {
+                corr_m_CA = xcorr_CA[i];
+                delay_CA = i-MAX_DELAY_SAMPLES;
+            }
+        }
+        SET_BIT(sl_flags, f_CALC_angle_ready, 1);
         break;
 
         case S_CALC_RST:
-        // Free the sample space we just used.
-        if (GET_BIT(sl_flags, f_CALC_buf_used)) {
-            SET_BIT(sl_flags, f_SAMPLE_buf2_ready, 0);
-        } else {
-            SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
-        }
-        // We just finished calculating
+        break;
     }
-    
-    
-    
-    
-    // We found a good data.
-    
-    // Take dot product of 
-    
-    
-    
-    
-    
+    return state;
+}
+
+void itostr(uint16_t val, char* out) {
+    const uint16_t maxsz = 7;
+    uint16_t sz = 0;
+    if (val == 0) {out[0] = '0'; out[1] = 0; return;}
+
+    while (val != 0 && sz < maxsz) {
+        uint8_t ones = val % 10;
+        out[sz] = ones + '0';
+        val /= 10;
+        sz++;
+    }
+    for (uint16_t i = 0; i < sz / 2; i++) {
+        char tmp = out[i];
+        out[i] = out[(sz - i) - 1];
+        out[sz - i - 1] = tmp;
+    }
+
+    for (uint16_t i = sz; i < maxsz; i++) {
+        out[i] = ' ';
+    }
+    out[maxsz] = 0;
+}
+
+enum {S_DISP_BUF, S_DISP_TX};
+
+char disp_buf[] = {
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // ampA
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // ampB
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // ampC
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayAB
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayBC
+    '0', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // delayCA
+};
+char *buf_ampA = disp_buf;
+char *buf_ampB = &(disp_buf[8]);
+char *buf_ampC = &(disp_buf[16]);
+char *buf_delayAB = &(disp_buf[24]);
+char *buf_delayBC = &(disp_buf[32]);
+char *buf_delayCA = &(disp_buf[40]);
+
+uint16_t tick_DISP(uint16_t state) {
+    static uint8_t loc = 0;
+    switch(state) {
+        case S_DISP_BUF:
+        state = S_DISP_TX;
+        break;
+
+        case S_DISP_TX:
+        if (GET_BIT(sl_flags, f_CALC_angle_ready)) {
+            state = S_DISP_BUF;
+        }
+        break;
+
+        default:
+        state = S_DISP_TX;
+        break;
+    }
+
+    switch(state) {
+        case S_DISP_BUF:
+        itostr(sample1, buf_ampA);
+        itostr(sample2, buf_ampB);
+        itostr(sample3, buf_ampC);
+        itostr(delay_AB, buf_delayAB);
+        itostr(delay_BC, buf_delayBC);
+        itostr(delay_CA, buf_delayCA);
+        break;
+
+        case S_DISP_TX:
+        SET_BIT(sl_flags, f_CALC_angle_ready, 0)
+        // Row =  0+(8*(i/8))
+        // Col = 80+(8*(i%8))
+
+        write_char(80+(8*(loc%8)), 0+(8*(loc/8)), disp_buf[loc]);
+        loc++;
+        if (loc >= sizeof(disp_buf)) loc = 0;
+        break;
+    }
+
     return state;
 }
 
 int main(void) {
+
+    
+
+
+
     add_task((uint16_t)-1, 1, &tick_SAMPLE);
     add_task(S_CALC_RST, 1, &tick_CALC);
+    add_task(-1, 1, &tick_DISP);
+
+    init_TFT();
+
+    timer_init();
+    timer_set(1);
     
+    while(1);
     
 }
