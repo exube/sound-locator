@@ -289,7 +289,7 @@ uint16_t tick_CALC(uint16_t state) {
             } else {
             SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
         }
-        corr_m_AB = corr_m_BC = corr_m_CA = 0;
+        corr_m_AB = corr_m_BC = corr_m_CA = 20000;
         for (uint8_t i = 0; i < num_xcorr_pts; i++) {
             if (xcorr_AB[i] > corr_m_AB) {
                 corr_m_AB = xcorr_AB[i];

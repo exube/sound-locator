@@ -143,6 +143,14 @@ void init_TFT() {
             i++;
         }
     }
+    write_cmd(ILI_RAMWR);
+    for (uint8_t j = 0; j < 240; j++) {
+        for (uint16_t k = 0; k < 320; k++) {
+            write_data(0);
+            write_data(0);
+                
+        }
+    }
 }
 
 void init_ADC() {
