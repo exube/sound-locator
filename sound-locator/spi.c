@@ -296,6 +296,38 @@ void write_strn(uint16_t col, uint16_t pg, const char *str, uint8_t sz) {
     }
 }
 
+void set_col(uint16_t col_l, uint16_t col_r) {
+    write_cmd(ILI_CASET);
+    write_data(col_l >> 8);
+    write_data(col_l);
+    write_data(col_r >> 8);
+    write_data(col_r);
+    
+}
+void set_row(uint16_t row_n, uint16_t row_s) {
+    write_cmd(ILI_PASET);
+    write_data(row_n >> 8);
+    write_data(row_n);
+    write_data(row_s >> 8);
+    write_data(row_s);
+}
+void prep_write() {
+    write_cmd(ILI_RAMWR);
+}
+
+void write_pixbyte(uint8_t data) {
+    for (uint8_t j = 0; j < 8; j++) {
+        if (data & 0x01) {
+            write_data(0xFF);
+            write_data(0xFF);
+        } else {
+            write_data(0x00);
+            write_data(0x00);
+        }
+        data = data >> 1;
+    }
+    tft_desel();
+}
 
 // Write a test char to pixel column 16-24, row 16-24
 void test_char() {

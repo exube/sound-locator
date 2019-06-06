@@ -23,5 +23,10 @@ void write_strn(uint16_t col, uint16_t pg, const char *str, uint8_t sz);
 
 uint16_t read_sample1(uint8_t channel);
 
+void prep_write();
+void set_row(uint16_t, uint16_t);
+void set_col(uint16_t, uint16_t);
+void write_pixbyte(uint8_t);
+
 
 #endif /* SPI_H_ */
