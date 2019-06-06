@@ -225,11 +225,11 @@ uint16_t tick_CALC(uint16_t state) {
         dotp = 0;
         if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
             for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += b_sample[i] + c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += b_sample[i] * c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         } else {
             for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += c_sample[i] + b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
+                dotp += c_sample[i] * b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_BC[xcorr_index] = dotp;
@@ -239,11 +239,11 @@ uint16_t tick_CALC(uint16_t state) {
             dotp = 0;
             if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
                 for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                    dotp += b_sample[i] + c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
+                    dotp += b_sample[i] * c_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             } else {
                 for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                    dotp += c_sample[i] + b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
+                    dotp += c_sample[i] * b_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
                 }
             }
             xcorr_BC[xcorr_index] = dotp;
@@ -312,12 +312,10 @@ uint16_t tick_CALC(uint16_t state) {
         if (abs(delay_AB) > abs(delay_BC) && abs(delay_AB) > abs(delay_CA)) {
             if (delay_AB > 0) dir = 1;
             else dir = 4;
-        }
-        if (abs(delay_BC) > abs(delay_AB) && abs(delay_BC) > abs(delay_CA)) {
+        } else if (abs(delay_BC) > abs(delay_AB) && abs(delay_BC) > abs(delay_CA)) {
             if (delay_BC > 0) dir = 3;
             else dir = 6;
-        }
-        if (abs(delay_CA) > abs(delay_AB) && abs(delay_CA) > abs(delay_BC)) {
+        } else if (abs(delay_CA) > abs(delay_AB) && abs(delay_CA) > abs(delay_BC)) {
             if (delay_CA > 0) dir = 5;
             else dir = 2;
         } else dir = 0;
