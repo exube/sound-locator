@@ -257,11 +257,11 @@ uint16_t tick_CALC(uint16_t state) {
         dotp = 0;
         if (xcorr_index-MAX_DELAY_SAMPLES <= 0) {
             for (uint8_t i = 0; i < BUF_SZ+(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)] / 16;
+                dotp += c_sample[i] * a_sample[i-(xcorr_index-MAX_DELAY_SAMPLES)];
             }
             } else {
             for (uint8_t i = 0; i < BUF_SZ-(xcorr_index-MAX_DELAY_SAMPLES); i++) {
-                dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)] / 16;
+                dotp += a_sample[i] * c_sample[i+(xcorr_index-MAX_DELAY_SAMPLES)];
             }
         }
         xcorr_CA[xcorr_index] = dotp;
@@ -290,7 +290,7 @@ uint16_t tick_CALC(uint16_t state) {
             } else {
             SET_BIT(sl_flags, f_SAMPLE_buf1_ready, 0);
         }
-        corr_m_AB = corr_m_BC = corr_m_CA = 6000;
+        corr_m_AB = corr_m_BC = corr_m_CA = 8000;
         delay_AB = delay_BC = delay_CA = 0;
         for (uint8_t i = 0; i < num_xcorr_pts; i++) {
             if (xcorr_AB[i] > corr_m_AB) {
@@ -544,9 +544,9 @@ int main(void) {
     write_strn(0, 0x30, "dir", 3);
 
 
-
-    timer_init();
     timer_set(1);
+    timer_init();
+    
     
     while(1);
     
